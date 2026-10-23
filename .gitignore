@@ -1,0 +1,7 @@
+.DS_*
+__pycache__
+*.0.html
+*.0.js
+*.0.css
+keys.py
+.claude/settings.json
