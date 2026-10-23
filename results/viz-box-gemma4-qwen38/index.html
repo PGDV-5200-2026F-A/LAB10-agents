@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>stops2boxes — Object Detection Dashboard</title>
+  <!-- Model signature: gemma4:e4b -->
+  <!--
+    stops2boxes object-detection dashboard (PGDV5200 LAB09)
+    Model: gemma4:e4b
+
+    Documented defaults (see also the header comment in box.js):
+    - Data source: dist/data.js defines window.DETECTIONS (16,397 detections, 4,086 stops).
+      No network fetch, no build step; opens directly from file://.
+    - D3 is pinned to 7.9.0 (CDN). No randomness, no transitions, fixed chart sizes,
+      deterministic sorting before every data binding, fixed/derived scale domains.
+    - Object Frequency bars and Score box plots react to the score slider and highlight
+      the selected label, but they do NOT apply the label filter to themselves, so the
+      primary filter control always shows (and stays clickable) for all four labels.
+    - Heatmap: 20x20 bins over normalized image space [0,1]^2 (y=0 at the top, image
+      convention); the sequential color scale rescales to the current maximum bin count
+      under the active filters; empty bins are drawn in neutral gray.
+    - Scatter: x-axis (box area) is log-scaled because areas span ~3 orders of magnitude;
+      y-axis (score) shares the fixed [0.2, 1.0] domain with the box plot. At most
+      ~4,000 points are rendered via a deterministic stride sample (every k-th record,
+      k = ceil(n/4000); with n = 16,397 this gives k = 5 and 3,280 points).
+    - Box plot whiskers extend to the data min/max (a plain five-number summary),
+      rather than 1.5xIQR fences.
+    - Layout: fixed 1320px dashboard; KPI row; 3 columns of 420px cards (~480px tall
+      incl. titles); wide scatter; filter bar.
+  -->
+  <link rel="stylesheet" href="box.css">
+</head>
+<body>
+  <div class="dashboard">
+    <header>
+      <h1>stops2boxes — Object Detection Dashboard</h1>
+      <p class="subtitle">
+        Detection statistics for the stops2boxes object-detection dataset: 16,397 detections
+        across 4,086 stops (labels: bus_sign, bus_stop, person, tree).
+        Source: <code>data/stops2boxes.json</code>, embedded as <code>dist/data.js</code>.
+      </p>
+    </header>
+
+    <section class="kpi-row" aria-label="Key metrics">
+      <div class="card kpi-card">
+        <span class="kpi-label">Total Detections</span>
+        <span class="kpi-value" id="kpi-detections">—</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Total Stops</span>
+        <span class="kpi-value" id="kpi-stops">—</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Unique Object Types</span>
+        <span class="kpi-value" id="kpi-types">—</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Overall Avg. Score</span>
+        <span class="kpi-value" id="kpi-avg-score">—</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Most Frequent Object</span>
+        <span class="kpi-value kpi-value-sm" id="kpi-most-frequent">—</span>
+      </div>
+    </section>
+
+    <section class="chart-row">
+      <div class="card chart-card">
+        <h2>Object Frequency <span class="hint">click a bar to filter by label</span></h2>
+        <div id="chart-frequency"></div>
+      </div>
+      <div class="card chart-card">
+        <h2>Score Distribution <span class="hint">whiskers = min–max</span></h2>
+        <div id="chart-boxplot"></div>
+      </div>
+      <div class="card chart-card">
+        <h2>Spatial Density Heatmap <span class="hint">20×20 bins, detections per bin</span></h2>
+        <div id="chart-heatmap"></div>
+      </div>
+    </section>
+
+    <section class="card chart-card">
+      <h2>Detail View — Box Area vs. Score <span class="hint">x-axis log scale · deterministic stride sample, ≤ 4,000 points</span></h2>
+      <div id="chart-scatter"></div>
+    </section>
+
+    <section class="card filter-bar" aria-label="Global filters">
+      <div class="filter-group">
+        <label for="score-slider">Minimum score</label>
+        <input type="range" id="score-slider" aria-label="Minimum score filter">
+        <span class="filter-value" id="score-value">0.250</span>
+      </div>
+      <div class="filter-group">
+        <span class="filter-name">Label</span>
+        <span class="filter-value" id="label-value">All</span>
+        <button type="button" id="reset-labels">All labels</button>
+      </div>
+      <p class="filter-hint">
+        The score slider applies globally to every KPI and chart. Click a bar in
+        Object Frequency to select a label; click it again, or press “All labels”, to clear.
+      </p>
+    </section>
+  </div>
+
+  <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
+
+  <!-- Load order: D3 (pinned) → data → dashboard logic -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="data.js"></script>
+  <script src="box.js"></script>
+</body>
+</html>

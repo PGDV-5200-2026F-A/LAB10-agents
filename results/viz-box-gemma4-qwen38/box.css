@@ -1,0 +1,172 @@
+/* Model signature: gemma4:e4b */
+/* stops2boxes object-detection dashboard — all styling for box.html */
+
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --border: #dfe3e8;
+  --text: #1f2430;
+  --muted: #5c6470;
+  --accent: #2f5f8f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.dashboard {
+  width: 1320px;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 24px 0 48px;
+}
+
+/* ---------- Header ---------- */
+header h1 { font-size: 22px; margin: 0 0 4px; font-weight: 700; }
+.subtitle { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+.subtitle code {
+  background: #eceef2;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+/* ---------- KPI row ---------- */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.kpi-card { padding: 12px 14px; }
+.kpi-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.kpi-value {
+  font-size: 26px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.kpi-value-sm { font-size: 17px; line-height: 32px; }
+
+/* ---------- Chart layout ---------- */
+.chart-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+  margin-bottom: 16px;
+}
+.chart-card h2 {
+  font-size: 15px;
+  font-weight: 650;
+  margin: 0 0 8px;
+}
+.chart-card h2 .hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+svg { display: block; max-width: 100%; height: auto; }
+svg text { font-family: inherit; }
+
+/* ---------- SVG chart elements ---------- */
+.axis text { font-size: 11px; fill: #3d4451; }
+.axis path, .axis line { stroke: #b6bdc9; }
+.axis-label { font-size: 12px; fill: var(--muted); }
+
+.legend text { font-size: 11px; fill: var(--text); }
+
+.bar-label { font-size: 12px; fill: var(--text); }
+.bar-value {
+  font-size: 11px;
+  fill: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.bar { stroke: none; }
+.bar.selected { stroke: #1f2430; stroke-width: 2px; }
+.bar.dimmed { opacity: 0.35; }
+.bar-hit { cursor: pointer; }
+
+.box-group.dimmed { opacity: 0.35; }
+.box-group.selected .box { stroke-width: 3px; }
+
+.dot { stroke: #ffffff; stroke-width: 0.4; }
+
+/* ---------- Filter bar ---------- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 28px;
+  margin-top: 16px;
+  padding: 14px 18px;
+}
+.filter-group { display: flex; align-items: center; gap: 10px; }
+.filter-group label,
+.filter-name { font-size: 13px; font-weight: 600; }
+#score-slider { width: 220px; accent-color: var(--accent); }
+.filter-value {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+}
+#reset-labels {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text);
+  cursor: pointer;
+}
+#reset-labels:hover { background: #eef1f5; }
+.filter-hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- Tooltip (opacity .visible pattern) ---------- */
+.tooltip {
+  position: absolute;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #ffffff;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 1000;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 280px;
+}
+.tooltip.visible { opacity: 1; }
+.tt-hint { color: #bfc6d4; font-size: 11px; }
+
+/* ---------- Misc ---------- */
+.fatal { font-size: 15px; padding: 24px; }

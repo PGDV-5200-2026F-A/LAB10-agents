@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<!--
+  ANSUR anthropometric survey - interactive dashboard
+
+  Model: minimax/minimax-m3.1-flash
+  Built with: D3.js v7.9.0 (vendored at vendor/d3.v7.9.0.min.js - pinned, no CDN)
+  Data: ../data/ansur-full.csv  ->  data/ansur.json  ->  ansur-data.js
+  Statistics: tools/analyze.py  ->  data/ansur-stats.json  ->  ansur-stats.js
+  Stat core: stats.js - the quantile, box, KDE and covariance definitions,
+              unit-tested in tools/test_stats.js and cross-checked against
+              tools/analyze.py.
+
+  Defaults (documented per the d3 skill, since the brief left them open):
+    - Scatter  : height (cm) vs weight (kg), coloured by gender.
+    - Box/violin: BMI, the metric-space feature that needs no unit conversion.
+    - Heatmap  : Pearson correlation over the 17 source features, with a toggle
+                 to the raw covariance matrix (diverging vs sequential scale).
+    - Filters  : gender (all/F/M) and an age range; they scope every chart and
+                 every statistic below, so all numbers on the page agree.
+    - Theme    : follows the OS by default; the header button overrides it.
+    - Motion   : none. No transitions, no animation, no randomness - so the
+                 rendered output is byte-stable across runs and machines.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANSUR anthropometric survey - dashboard</title>
+<link rel="stylesheet" href="chart.css">
+</head>
+<body>
+<div class="viz-root">
+<div class="shell">
+
+  <div class="masthead">
+    <div>
+      <h1>ANSUR anthropometric survey</h1>
+      <p>Body measurements from 6,068 respondents. Every chart below shares one
+         filter row, so the numbers always describe the same slice of people.</p>
+    </div>
+    <div class="masthead-actions">
+      <button class="btn" id="export-svg" type="button">Download SVG</button>
+      <button class="btn" id="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-value" id="hero-value">6,068</div>
+    <div class="hero-label" id="hero-label">respondents in the survey</div>
+    <div class="hero-sub" id="hero-sub"></div>
+  </div>
+
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <!-- One filter row, above everything it scopes. -->
+  <div class="control-bar" role="group" aria-label="Dashboard filters">
+    <div class="control">
+      <label for="filter-gender">Gender</label>
+      <select id="filter-gender">
+        <option value="all">All respondents</option>
+        <option value="F">Women (F)</option>
+        <option value="M">Men (M)</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="filter-age-min">Age range</label>
+      <div class="control-pair">
+        <input type="number" id="filter-age-min" min="17" max="58" step="1" value="17"
+               aria-label="Minimum age">
+        <span>to</span>
+        <input type="number" id="filter-age-max" min="17" max="58" step="1" value="58"
+               aria-label="Maximum age">
+      </div>
+    </div>
+    <div class="control">
+      <label for="focus-measure">Focus measure</label>
+      <select id="focus-measure"></select>
+    </div>
+    <div class="control">
+      <label for="scatter-x">Scatter x</label>
+      <select id="scatter-x"></select>
+    </div>
+    <div class="control">
+      <label for="scatter-y">Scatter y</label>
+      <select id="scatter-y"></select>
+    </div>
+    <div class="control-spacer"></div>
+    <div class="control">
+      <button class="btn" id="reset-filters" type="button">Reset filters</button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <figure class="card" id="card-scatter">
+      <header>
+        <h2>Height against weight</h2>
+        <button class="table-toggle" type="button" data-table="table-scatter"
+                aria-expanded="false">Show table</button>
+      </header>
+      <p class="subtitle" id="scatter-subtitle"></p>
+      <ul class="legend" id="scatter-legend"></ul>
+      <div id="chart-scatter"></div>
+      <div class="table-wrap" id="table-scatter" hidden></div>
+    </figure>
+
+    <figure class="card" id="card-population">
+      <header>
+        <h2>Respondents by age band</h2>
+        <button class="table-toggle" type="button" data-table="table-population"
+                aria-expanded="false">Show table</button>
+      </header>
+      <p class="subtitle">How the survey population splits across age bands, by
+         gender. Band order is fixed from youngest to oldest.</p>
+      <ul class="legend" id="population-legend"></ul>
+      <div id="chart-population"></div>
+      <div class="table-wrap" id="table-population" hidden></div>
+    </figure>
+
+    <figure class="card card-wide" id="card-matrix">
+      <header>
+        <h2 id="matrix-title">Correlation matrix</h2>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="seg" role="group" aria-label="Matrix metric">
+            <button type="button" data-matrix="correlation" aria-pressed="true">Correlation</button>
+            <button type="button" data-matrix="covariance" aria-pressed="false">Covariance</button>
+          </div>
+          <button class="table-toggle" type="button" data-table="table-matrix"
+                  aria-expanded="false">Show table</button>
+        </div>
+      </header>
+      <p class="subtitle" id="matrix-subtitle"></p>
+      <div id="chart-matrix"></div>
+      <div class="scale-legend" id="matrix-scale-legend"></div>
+      <div class="table-wrap" id="table-matrix" hidden></div>
+    </figure>
+
+    <figure class="card" id="card-box">
+      <header>
+        <h2>Distribution by gender</h2>
+        <button class="table-toggle" type="button" data-table="table-box"
+                aria-expanded="false">Show table</button>
+      </header>
+      <p class="subtitle" id="box-subtitle"></p>
+      <ul class="legend" id="box-legend"></ul>
+      <div id="chart-box"></div>
+      <div class="table-wrap" id="table-box" hidden></div>
+    </figure>
+
+    <figure class="card" id="card-violin">
+      <header>
+        <h2>Shape of the distribution</h2>
+        <button class="table-toggle" type="button" data-table="table-violin"
+                aria-expanded="false">Show table</button>
+      </header>
+      <p class="subtitle" id="violin-subtitle"></p>
+      <ul class="legend" id="violin-legend"></ul>
+      <div id="chart-violin"></div>
+      <div class="table-wrap" id="table-violin" hidden></div>
+    </figure>
+
+    <figure class="card card-wide" id="card-summary">
+      <header>
+        <h2>Descriptive statistics and data completeness</h2>
+        <button class="table-toggle" type="button" data-table="table-summary"
+                aria-expanded="false">Show table</button>
+      </header>
+      <p class="subtitle" id="summary-subtitle"></p>
+      <div id="chart-missing"></div>
+      <div class="table-wrap" id="table-summary" hidden></div>
+    </figure>
+
+  </div>
+
+  <div class="notes">
+    <strong>How to read this page</strong>
+    <ul>
+      <li>The filter row scopes every chart, tile and table below it. Changing a
+          filter re-renders all of them against the same slice.</li>
+      <li>Colour means identity, never magnitude: blue is always F, orange is
+          always M, and filtering never repaints the remaining series.</li>
+      <li>Every chart has a table twin. The button above each chart opens it, so
+          no value is reachable only by hovering.</li>
+      <li>Height and weight are stored in inches and pounds in the source file;
+          the dashboard uses the metric conversions derived in
+          <code>tools/build_data.py</code> and shows them in the axis labels.</li>
+      <li>Missing values are kept as missing rather than filled in, and every
+          statistic reports the number of observations it was computed from.</li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+
+<script src="vendor/d3.v7.9.0.min.js"></script>
+<script src="ansur-data.js"></script>
+<script src="ansur-stats.js"></script>
+<script src="stats.js"></script>
+<script src="chart.js"></script>
+</body>
+</html>

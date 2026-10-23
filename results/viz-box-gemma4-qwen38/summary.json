@@ -1,0 +1,86 @@
+{
+ "total_detections": 16397,
+ "total_stops": 4086,
+ "labels": [
+  "bus_sign",
+  "bus_stop",
+  "person",
+  "tree"
+ ],
+ "label_counts": {
+  "bus_sign": 123,
+  "bus_stop": 1168,
+  "person": 3925,
+  "tree": 11181
+ },
+ "score": {
+  "min": 0.25,
+  "max": 0.965,
+  "mean": 0.4481,
+  "median": 0.418
+ },
+ "area": {
+  "min": 0.00074,
+  "max": 0.79144,
+  "mean": 0.04918
+ },
+ "coord_range": [
+  -0.0064,
+  1.0004
+ ],
+ "per_label": {
+  "bus_sign": {
+   "count": 123,
+   "mean_score": 0.7799,
+   "median_score": 0.778,
+   "min_score": 0.65,
+   "max_score": 0.958,
+   "std_score": 0.0825,
+   "q1": 0.706,
+   "q3": 0.845,
+   "mean_area": 0.0021,
+   "median_area": 0.00189
+  },
+  "bus_stop": {
+   "count": 1168,
+   "mean_score": 0.7303,
+   "median_score": 0.734,
+   "min_score": 0.55,
+   "max_score": 0.965,
+   "std_score": 0.1064,
+   "q1": 0.637,
+   "q3": 0.825,
+   "mean_area": 0.04645,
+   "median_area": 0.03298
+  },
+  "person": {
+   "count": 3925,
+   "mean_score": 0.5192,
+   "median_score": 0.539,
+   "min_score": 0.25,
+   "max_score": 0.903,
+   "std_score": 0.1685,
+   "q1": 0.354,
+   "q3": 0.661,
+   "mean_area": 0.0069,
+   "median_area": 0.00342
+  },
+  "tree": {
+   "count": 11181,
+   "mean_score": 0.39,
+   "median_score": 0.372,
+   "min_score": 0.25,
+   "max_score": 0.749,
+   "std_score": 0.1056,
+   "q1": 0.295,
+   "q3": 0.47,
+   "mean_area": 0.06483,
+   "median_area": 0.01785
+  }
+ },
+ "per_stop_counts": {
+  "min": 1,
+  "max": 15,
+  "mean": 4.01
+ }
+}

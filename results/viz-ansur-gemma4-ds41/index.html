@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ANSUR Anthropometric Dashboard</title>
+  <!-- Model signature: deepseek-v4.1-flash -->
+  <!--
+    ANSUR anthropometric dashboard (PGDV5200 LAB09)
+    Model: deepseek-v4.1-flash
+
+    Documented defaults (see also the header comment in ansur.js):
+    - Data source: ansur/data.js defines window.ANSUR (6,068 records x 18 columns)
+      from `data/ansur-full.csv`. No network fetch, no build step; index.html opens
+      directly from file:// (the only external request is the pinned D3 CDN script).
+    - D3 is pinned to 7.9.0 (CDN). No randomness (no Math.random / d3-random),
+      no transitions or animations, fixed width/height/margins/viewBox, explicit
+      deterministic sorts before every data binding, stable string ids for SVG defs.
+    - Units are MIXED: height is inches, weight is pounds, age is years, and every
+      other body measurement is millimetres. Every axis label states its unit, and
+      raw values from different unit groups are never placed on one shared axis.
+    - Missing values (null) are excluded per statistic, never imputed. One recorded
+      weight of 0 lb was recoded to null by prep.py and stays null here.
+    - Statistics are computed client-side from window.ANSUR.records and match
+      prep.py: PAIRWISE-COMPLETE covariance (each cell uses the rows where both
+      variables are present), sample covariance (n-1 denominator), linear-
+      interpolation quantiles (the d3.quantile definition), and Pearson r derived
+      from that same covariance matrix (r = cov / (sd_a * sd_b)).
+    - Covariance heatmap defaults to the CORRELATION matrix (unit-free); a toggle
+      switches to raw covariance. Correlation cells print their value; covariance
+      cells are colour + tooltip only because raw covariances mix incompatible units.
+      The currently selected cell's pairwise n is shown in the detail panel.
+    - Linked views: the "Feature" select drives the box, violin and histogram and
+      the scatter x-axis; the "Scatter y" select drives the scatter y-axis; clicking
+      a matrix cell loads that (row, column) pair into the scatter. The gender filter
+      applies to every view.
+    - Scatter sampling: at most 4,000 points are drawn via a deterministic stride
+      (every k-th record, k = ceil(n / 4000)) over records sorted by (x, gender,
+      source index). The count and stride are shown on the page, never random.
+    - Distribution scales: box, violin and histogram share the same feature min–max
+      range (the observed data range, no truncation); box/violin whiskers and extents
+      use the data min–max (a five-number summary). Violin widths share one density
+      scale so groups are comparable.
+    - Layout: fixed 1320px dashboard; KPI row; three distribution cards; a wide
+      scatter card; a wide matrix card (heatmap + detail panel). SVGs scale down
+      responsively via viewBox + max-width.
+  -->
+  <link rel="stylesheet" href="ansur.css">
+</head>
+<body>
+  <div class="dashboard">
+    <header>
+      <h1>ANSUR Anthropometric Dashboard</h1>
+      <p class="subtitle">
+        Distributions and relationships among the ANSUR (U.S. Army) body
+        measurements, for both sexes. Source: <code>data/ansur-full.csv</code>,
+        embedded as <code>ansur/data.js</code>; every figure below (record counts,
+        missing-cell counts, correlations) is computed in the browser from those
+        records. Units are mixed — <strong>height in inches</strong>,
+        <strong>weight in pounds</strong>, age in years, and every other body
+        measurement in <strong>millimetres</strong> — so each axis is labelled with
+        its own unit and raw values from different unit groups never share an axis.
+        Missing measurements are shown as gaps and reported, never imputed.
+      </p>
+    </header>
+
+    <section class="card controls" aria-label="Controls">
+      <div class="control-group">
+        <span class="control-label" id="gender-label">Gender filter</span>
+        <div class="radio-set" role="radiogroup" aria-labelledby="gender-label">
+          <label><input type="radio" name="gender" value="all" checked> All</label>
+          <label><input type="radio" name="gender" value="M"> Male</label>
+          <label><input type="radio" name="gender" value="F"> Female</label>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label" for="feature-select">Feature (distributions + scatter x)</label>
+        <select id="feature-select"></select>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label" for="scatter-y-select">Scatter y</label>
+        <select id="scatter-y-select"></select>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label" id="scale-label">Matrix scale</span>
+        <div class="radio-set" role="radiogroup" aria-labelledby="scale-label">
+          <label><input type="radio" name="matrix-scale" value="correlation" checked> Correlation (r)</label>
+          <label><input type="radio" name="matrix-scale" value="covariance"> Covariance</label>
+        </div>
+      </div>
+
+      <p class="controls-hint">
+        Every control is keyboard reachable. The gender filter applies to all views.
+        The feature selection links the box, violin and histogram with the scatter
+        x-axis; clicking a cell in the matrix loads that pair into the scatter.
+      </p>
+    </section>
+
+    <section class="kpi-row" aria-label="Key metrics">
+      <div class="card kpi-card">
+        <span class="kpi-label">Records</span>
+        <span class="kpi-value" id="kpi-records">—</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Male</span>
+        <span class="kpi-value" id="kpi-male">—</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Female</span>
+        <span class="kpi-value" id="kpi-female">—</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Missing cells</span>
+        <span class="kpi-value" id="kpi-missing">—</span>
+      </div>
+      <div class="card kpi-card">
+        <span class="kpi-label">Feature coverage</span>
+        <span class="kpi-value" id="kpi-coverage">—</span>
+        <span class="kpi-sub" id="kpi-coverage-sub">—</span>
+      </div>
+    </section>
+
+    <section class="chart-row">
+      <div class="card chart-card">
+        <h2>Box plot <span class="hint">by gender · whiskers = min–max</span></h2>
+        <div id="chart-box"></div>
+      </div>
+      <div class="card chart-card">
+        <h2>Violin plot <span class="hint">by gender · dashed = median</span></h2>
+        <div id="chart-violin"></div>
+      </div>
+      <div class="card chart-card">
+        <h2>Histogram <span class="hint">30 bins · lines = mean &amp; median</span></h2>
+        <div id="chart-hist"></div>
+      </div>
+    </section>
+
+    <section class="card stats-card" aria-label="Selected feature statistics">
+      <p class="stats-line" id="feature-stats">—</p>
+    </section>
+
+    <section class="card chart-card">
+      <h2>Scatter — two measurements <span class="hint">coloured and shaped by gender · least-squares fit</span></h2>
+      <p class="stats-line" id="scatter-stat">—</p>
+      <div id="chart-scatter"></div>
+    </section>
+
+    <section class="card chart-card">
+      <h2>Covariance / correlation matrix <span class="hint" id="matrix-scale-label">Correlation (r)</span></h2>
+      <div class="matrix-layout">
+        <div class="matrix-chart">
+          <div id="chart-matrix"></div>
+          <div id="matrix-legend" class="matrix-legend"></div>
+        </div>
+        <div class="matrix-detail">
+          <h3>Selected cell</h3>
+          <p class="detail-pair" id="detail-pair">—</p>
+          <dl>
+            <dt>Pearson r</dt><dd id="detail-r">—</dd>
+            <dt>Covariance</dt><dd id="detail-cov">—</dd>
+            <dt>Pairwise n</dt><dd id="detail-n">—</dd>
+            <dt>Strength</dt><dd id="detail-strength">—</dd>
+          </dl>
+          <p class="matrix-note">
+            Values are computed pairwise-complete: each cell uses only the rows where
+            both measurements are present, so a coefficient built on fewer rows is
+            less certain — check the pairwise n. The correlation view (default) is
+            unit-free; the covariance view mixes incompatible units and its cells are
+            therefore colour + tooltip only. Click any cell to load that pair into the
+            scatter plot above.
+          </p>
+          <p class="sr-only">
+            Textual description: the matrix is a square grid with one row and one
+            column per numeric measurement, so every pair of measurements appears
+            twice. The diagonal is 1 in the correlation view. Stronger positive
+            values are red, stronger negative values are blue, and near-zero values
+            are light grey; each correlation cell also prints its value.
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
+
+  <!-- Load order: D3 (pinned) → data → dashboard logic -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="data.js"></script>
+  <script src="ansur.js"></script>
+</body>
+</html>

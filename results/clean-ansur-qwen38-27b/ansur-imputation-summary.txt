@@ -1,0 +1,126 @@
+========================================================================
+ANSUR DATASET - MISSING-VALUE IMPUTATION SUMMARY
+========================================================================
+
+Input:  /home/ubuntu/PG5200/src/LAB09-agents/data/ansur-full.csv
+Output: /home/ubuntu/PG5200/src/LAB09-agents/data/ansur-full-imputed.csv
+Rows: 6068  |  Columns: 18 (order preserved, row order preserved)
+Software: pandas 3.0.6, numpy 2.4.6, scikit-learn 1.9.1 (random_state=42)
+
+------------------------------------------------------------------------
+1. DATASET PROFILE
+------------------------------------------------------------------------
+- 6068 rows of US adult anthropometry (ages 17-58).
+- gender: 4082 M / 1986 F (66.9% / 33.1%), 0 missing.
+- age: 0 missing; distribution: min=17, max=58, mean=29.76, median=28, sd=8.67; all integer values 17-58 present.
+- Units are mixed BY DESIGN of the dataset (reported, not altered):
+    height (inches, 56-94), weight (lb, 0-321); all 14 body-measurement
+    columns in mm. All observed values in the raw file are whole numbers
+    (integers, 0.5-mm and finer granularity never appears).
+- Missingness is sporadic: 9 columns affected (0.02%-3.46% each);
+  30 rows have >=2 missing values, max 3 in one row.
+
+Missing values BEFORE imputation (count / %):
+  age                    0  /    0.0%
+  gender                 0  /    0.0%
+  height                 0  /    0.0%
+  weight                 0  /    0.0%
+  span                 138  /  2.274%  <--- IMPUTED
+  stature                0  /    0.0%
+  ear.breadth            0  /    0.0%
+  ear.length            69  /  1.137%  <--- IMPUTED
+  ear.protrusion       210  /  3.461%  <--- IMPUTED
+  foot.breadth           0  /    0.0%
+  foot.length          135  /  2.225%  <--- IMPUTED
+  hand.breadth           2  /  0.033%  <--- IMPUTED
+  hand.length           12  /  0.198%  <--- IMPUTED
+  hand.palm             27  /  0.445%  <--- IMPUTED
+  head.breadth         205  /  3.378%  <--- IMPUTED
+  head.length            1  /  0.016%  <--- IMPUTED
+  head.height            0  /    0.0%
+  head.circumference     0  /    0.0%
+  TOTAL                799  / 0.73% (cell-level)
+
+------------------------------------------------------------------------
+2. ANOMALIES FOUND (REPORTED ONLY - NO VALID VALUES WERE ALTERED)
+------------------------------------------------------------------------
+- weight = 0 (1 row, CSV data-row 1498): age=41, gender=M, height=71 in, all other measurements normal-range.
+  Almost certainly a data-entry error (adult 71-in man recorded as 0 lb).
+  Left unchanged per instruction to impute missingness only; flagged here.
+- height: 14 values <= 58 in (142-147 cm) and 1 value = 94 in - extreme but plausible for adults; not altered.
+- weight: 47 values outside 1.5*IQR bounds (81-265 lb) incl. max 321 lb - plausible range; not altered.
+- No other unit inconsistencies or implausible ranges detected among the 14 mm columns.
+
+------------------------------------------------------------------------
+3. IMPUTATION METHOD AND JUSTIFICATION
+------------------------------------------------------------------------
+Method: Multiple Imputation by Chained Equations (MICE) as implemented by
+scikit-learn's IterativeImputer (20 iterations, 'descending' order starting from the
+most-missing column) with RandomForest regressors (200 trees, min_samples_leaf=5)
+as the conditional model. Gender (F/M) was included as an observed predictor;
+the other 14 measurement columns (incl. height and stature, both fully observed)
+serve as covariates for every imputed value.
+
+Why MICE over simpler choices:
+- All missing cells are in columns strongly correlated with fully-observed
+  columns (corr with height: span 0.87, foot.length 0.82, hand.length 0.74,
+  head.length 0.57, ear.length 0.43, head.breadth 0.39, ear.protrusion 0.29);
+  a simple mean/median throws away that information.
+- Gender means differ markedly for most measurements (e.g. span M vs F below),
+  so gender is used as a predictor instead of one overall mean.
+- MICE also uses inter-correlations among the measurements themselves (e.g.
+  span vs stature r=0.96), yielding individualized, person-specific estimates
+  rather than group-level constants; RandomForest adds robustness to mild
+  nonlinearity vs. a plain linear model.
+- Imputed values were rounded to the nearest whole unit, matching the resolution
+  of the observed data (all observed values are integers).
+
+Per-column result (n_filled, imputed range, spread; M/F means show why a single
+mean would be biased):
+  span             n= 138  imputed 1527-2040 (sd=123.6)  vs gender-mean: M=1812.7, F=1661.4 (mean abs diff 66.0)
+  ear.length       n=  69  imputed 58-65 (sd=1.7)  vs gender-mean: M=64.2, F=59.3 (mean abs diff 1.5)
+  ear.protrusion   n= 210  imputed 18-26 (sd=1.8)  vs gender-mean: M=23.2, F=20.4 (mean abs diff 0.9)
+  foot.length      n= 135  imputed 249-304 (sd=10.3)  vs gender-mean: M=270.9, F=246.3 (mean abs diff 9.9)
+  hand.breadth     n=   2  imputed 73-73 (sd=0.0)  vs gender-mean: M=88.3, F=78.2 (mean abs diff 5.2)
+  hand.length      n=  12  imputed 160-170 (sd=2.8)  vs gender-mean: M=193.3, F=181.2 (mean abs diff 15.0)
+  hand.palm        n=  27  imputed 126-130 (sd=1.1)  vs gender-mean: M=116.4, F=108.7 (mean abs diff 11.5)
+  head.breadth     n= 205  imputed 142-165 (sd=4.4)  vs gender-mean: M=154.4, F=147.8 (mean abs diff 2.9)
+  head.length      n=   1  imputed 188-188 (sd=n/a (n=1))  vs gender-mean: M=199.5, F=189.8 (mean abs diff 1.8)
+
+age (integer years): 0 missing - NO imputation performed. Resulting (unchanged)
+distribution: min=17, max=58, mean=29.76, median=28, sd=8.67; every integer age 17-58 is present (mode=21, n=383).
+gender: 0 missing - NO imputation performed; nothing was filled by class-majority.
+
+------------------------------------------------------------------------
+4. BEFORE / AFTER MISSING COUNTS
+------------------------------------------------------------------------
+  cells missing before: 799
+  cells missing after : 0
+  rows before/after   : 6068 / 6068
+
+------------------------------------------------------------------------
+5. ASSUMPTIONS AND CAVEATS
+------------------------------------------------------------------------
+- Missingness assumed Missing-At-Random (MAR); MICE is unbiased under MAR
+  but not under Not-MAR (e.g. if missing span correlated with unmeasured traits).
+- Single-imputation MICE slightly underestimates uncertainty: imputed values are
+  more tightly correlated with the predictors than observed values. Downstream
+  inference should treat imputed cells as such or use full multiple imputation
+  with pooled estimates.
+- The weight=0 record (see section 2) remains in the output; any analysis of
+  weight should inspect it.
+- No valid observed value was modified: only NaN cells were filled.
+
+------------------------------------------------------------------------
+6. VERIFICATION OF OUTPUT FILE
+------------------------------------------------------------------------
+  - file re-parsed as strict string CSV: OK
+  - row count: 6068 (expected 6068) -> PASS
+  - column order identical to input: PASS
+  - row order verified on intact 'stature' column: PASS
+  - missing/empty cells in output: 0 (expected 0) -> PASS
+  - valid values preserved: 0 of 84800 numeric cells on the
+    5300 rows that have no missingness differ from input (numeric compare);
+    0 of those rows differ as raw text -> PASS
+
+Done.
