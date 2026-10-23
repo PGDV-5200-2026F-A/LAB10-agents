@@ -1,6 +1,4 @@
-========================================================================
-ANSUR DATASET - DATA DASHBOARD
-========================================================================
+# ANSUR DATASET - DATA DASHBOARD
 
 - Model: gemma4:e4b
 - Assistant: Claude Code v2.1.293 with high effort and plan mode

@@ -1,0 +1,184 @@
+/**
+ * Theme CSS Custom Properties
+ * Penguin Data Dashboard - Light/Dark theme support
+ * WCAG AA compliant color contrast ratios
+ */
+
+:root {
+  /* Color palette - Species (categorical, 3 distinct hues) */
+  --color-adelie: #4C78A8;
+  --color-gentoo: #F58518;
+  --color-chinstrap: #54A24B;
+
+  /* Sex encoding - shape difference, not hue */
+  --color-female: var(--color-text);
+  --color-male: var(--color-text);
+
+  /* Sequential - body mass (light to dark) */
+  --color-mass-light: #E8F4FD;
+  --color-mass-dark: #1B4F72;
+
+  /* Diverging - correlation heatmap (blue-white-red) */
+  --color-corr-neg: #2166AC;
+  --color-corr-zero: #F7F7F7;
+  --color-corr-pos: #B2182B;
+
+  /* Light theme (default) */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8F9FA;
+  --bg-tertiary: #E9ECEF;
+  --bg-card: #FFFFFF;
+
+  --color-text: #212529;
+  --color-text-secondary: #495057;
+  --color-text-muted: #6C757D;
+
+  --border-color: #DEE2E6;
+  --border-focus: var(--color-adelie);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+
+  /* Chart specific */
+  --chart-grid: #E9ECEF;
+  --chart-axis: #6C757D;
+  --chart-tooltip-bg: rgba(33, 37, 41, 0.9);
+  --chart-tooltip-text: #FFFFFF;
+
+  /* Selection highlight */
+  --selection-opacity: 1;
+  --unselected-opacity: 0.3;
+
+  /* Focus visible */
+  --focus-ring: 0 0 0 3px rgba(76, 120, 168, 0.4);
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-primary: #1A1C1E;
+    --bg-secondary: #242629;
+    --bg-tertiary: #2D2F33;
+    --bg-card: #242629;
+
+    --color-text: #F0F0F0;
+    --color-text-secondary: #D0D0D0;
+    --color-text-muted: #999999;
+
+    --border-color: #3A3D41;
+    --border-focus: #6BA3D6;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+
+    --chart-grid: #3A3D41;
+    --chart-axis: #999999;
+    --chart-tooltip-bg: rgba(240, 240, 240, 0.95);
+    --chart-tooltip-text: #1A1C1E;
+
+    --focus-ring: 0 0 0 3px rgba(107, 163, 214, 0.4);
+  }
+}
+
+/* Explicit light theme */
+[data-theme="light"] {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8F9FA;
+  --bg-tertiary: #E9ECEF;
+  --bg-card: #FFFFFF;
+
+  --color-text: #212529;
+  --color-text-secondary: #495057;
+  --color-text-muted: #6C757D;
+
+  --border-color: #DEE2E6;
+  --border-focus: var(--color-adelie);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  --chart-grid: #E9ECEF;
+  --chart-axis: #6C757D;
+  --chart-tooltip-bg: rgba(33, 37, 41, 0.9);
+  --chart-tooltip-text: #FFFFFF;
+
+  --focus-ring: 0 0 0 3px rgba(76, 120, 168, 0.4);
+}
+
+/* Explicit dark theme */
+[data-theme="dark"] {
+  --bg-primary: #1A1C1E;
+  --bg-secondary: #242629;
+  --bg-tertiary: #2D2F33;
+  --bg-card: #242629;
+
+  --color-text: #F0F0F0;
+  --color-text-secondary: #D0D0D0;
+  --color-text-muted: #999999;
+
+  --border-color: #3A3D41;
+  --border-focus: #6BA3D6;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+
+  --chart-grid: #3A3D41;
+  --chart-axis: #999999;
+  --chart-tooltip-bg: rgba(240, 240, 240, 0.95);
+  --chart-tooltip-text: #1A1C1E;
+
+  --focus-ring: 0 0 0 3px rgba(107, 163, 214, 0.4);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-normal: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: currentColor;
+    --border-focus: currentColor;
+    --focus-ring: 0 0 0 3px currentColor;
+  }
+}
+
+/* Species color classes for dynamic use */
+.species-adelie { color: var(--color-adelie); }
+.species-gentoo { color: var(--color-gentoo); }
+.species-chinstrap { color: var(--color-chinstrap); }
+
+.bg-adelie { background-color: var(--color-adelie); }
+.bg-gentoo { background-color: var(--color-gentoo); }
+.bg-chinstrap { background-color: var(--color-chinstrap); }
+
+.border-adelie { border-color: var(--color-adelie); }
+.border-gentoo { border-color: var(--color-gentoo); }
+.border-chinstrap { border-color: var(--color-chinstrap); }

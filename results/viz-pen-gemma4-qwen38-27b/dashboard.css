@@ -1,0 +1,257 @@
+/* Model: qwen3.8:27b
+ * Palmer Penguins dashboard — style rules.
+ * Color-blind-safe categorical palette (Okabe-Ito), neutral grayscale for sex
+ * in bar charts, sufficient contrast on all text (WCAG AA).
+ */
+
+:root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --paper: #ffffff;
+    --panel: #f7f7f5;
+    --border: #d8d8d2;
+    --adelie: #0072B2;
+    --chinstrap: #E69F00;
+    --gentoo: #009E73;
+    --male-bar: #4a4a4a;
+    --female-bar: #a8a8a8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    color: var(--ink);
+    background: #fcfcfa;
+    line-height: 1.5;
+}
+
+.page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 24px 20px 64px;
+}
+
+/* ---------- header ---------- */
+header h1 {
+    font-size: 1.7rem;
+    margin: 0 0 4px;
+}
+header p.subtitle {
+    margin: 0 0 4px;
+    color: var(--muted);
+    max-width: 80ch;
+}
+header p.provenance {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+header code { font-size: 0.8em; }
+
+/* ---------- filters ---------- */
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+    margin: 22px 0 26px;
+    padding: 12px 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.control-group > .group-label {
+    font-weight: 600;
+    margin-right: 4px;
+}
+button.filter-btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--ink);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+button.filter-btn:hover { border-color: var(--ink); }
+button.filter-btn.active {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+}
+button.filter-btn:focus-visible {
+    outline: 3px solid var(--adelie);
+    outline-offset: 2px;
+}
+
+/* ---------- panels ---------- */
+.panel {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px 22px;
+    margin-bottom: 26px;
+}
+.panel h2 {
+    font-size: 1.15rem;
+    margin: 0 0 2px;
+}
+.panel p.panel-desc {
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    max-width: 90ch;
+}
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 26px;
+}
+@media (max-width: 900px) {
+    .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ---------- svg charts ---------- */
+svg { display: block; max-width: 100%; height: auto; }
+
+.axis text {
+    font-size: 12px;
+    fill: var(--ink);
+}
+.axis path, .axis line {
+    stroke: #333;
+}
+.axis-label {
+    font-size: 13px;
+    fill: var(--ink);
+}
+.grid-line { stroke: #e4e4de; }
+
+.scatter-point {
+    stroke: #222;
+    stroke-width: 0.8;
+    fill-opacity: 0.78;
+}
+.scatter-point:focus {
+    outline: none;
+    stroke-width: 2.5;
+    fill-opacity: 1;
+}
+
+.box-rect {
+    stroke: #222;
+    stroke-width: 1;
+}
+.box-median { stroke: #111; stroke-width: 2.2; }
+.box-whisker { stroke: #444; }
+.box-outlier {
+    fill: #fff;
+    stroke: #444;
+    stroke-width: 1;
+}
+
+.bar-rect { stroke: #222; stroke-width: 0.8; }
+.bar-value-label {
+    font-size: 11px;
+    fill: var(--ink);
+}
+
+.heat-cell { stroke: #fff; stroke-width: 1.5; }
+.heat-value { font-size: 15px; font-weight: 600; }
+.heat-axis-label { font-size: 12px; fill: var(--ink); }
+
+/* ---------- legends ---------- */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 22px;
+    margin-top: 10px;
+    font-size: 0.88rem;
+}
+.legend .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.legend .swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid #333;
+    display: inline-block;
+}
+.legend svg { max-width: none; }
+.legend .shape { width: 20px; height: 20px; }
+
+/* ---------- feature bar small multiples ---------- */
+.bars-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 18px;
+}
+
+/* ---------- KPI cards ---------- */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+.kpi-card {
+    border: 1px solid var(--border);
+    border-left: 6px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    background: #fff;
+}
+.kpi-card h3 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+}
+.kpi-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.9rem;
+    padding: 2px 0;
+}
+.kpi-row .kpi-label { color: var(--muted); }
+.kpi-row .kpi-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+.kpi-row .kpi-sub { color: var(--muted); font-size: 0.8rem; }
+
+/* ---------- tooltip (d3 skill pattern) ---------- */
+.tooltip {
+    position: absolute;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 1000;
+    font-size: 0.85rem;
+    max-width: 260px;
+}
+.tooltip.visible { opacity: 1; }
+
+/* ---------- footer ---------- */
+footer {
+    margin-top: 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+footer ul { padding-left: 20px; }
+footer code { font-size: 0.9em; }

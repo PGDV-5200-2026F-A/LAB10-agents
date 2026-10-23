@@ -1,6 +1,4 @@
-========================================================================
-ANSUR DATASET - DATA DASHBOARD
-========================================================================
+# ANSUR DATASET - DATA DASHBOARD
 - Model: deepseek/deepseek-v4.1-flash
 - Assistant: Claude Code v2.1.293 with high effort and auto mode
 - Prompt: @viz agent plan dashboard for ansur-full.csv. write plan to ansur_ds41.md.

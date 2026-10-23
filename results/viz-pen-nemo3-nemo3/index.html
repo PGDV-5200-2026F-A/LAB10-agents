@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive Penguin Data Dashboard - Explore 344 penguins across 3 species">
+  <title>Penguin Data Dashboard</title>
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="dashboard-header" role="banner">
+    <div class="header-content">
+      <h1>Penguin Data Dashboard</h1>
+      <p class="subtitle">Exploring 344 penguins across 3 species</p>
+    </div>
+    <div class="header-stats" aria-live="polite" aria-atomic="true">
+      <div class="stat-card" data-species="all">
+        <span class="stat-value" id="stat-total">344</span>
+        <span class="stat-label">Total Penguins</span>
+      </div>
+      <div class="stat-card" data-species="Adelie">
+        <span class="stat-value" id="stat-adelie">152</span>
+        <span class="stat-label">Adelie</span>
+      </div>
+      <div class="stat-card" data-species="Gentoo">
+        <span class="stat-value" id="stat-gentoo">124</span>
+        <span class="stat-label">Gentoo</span>
+      </div>
+      <div class="stat-card" data-species="Chinstrap">
+        <span class="stat-value" id="stat-chinstrap">68</span>
+        <span class="stat-label">Chinstrap</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" role="main">
+    <div class="dashboard-grid">
+      <aside class="controls-panel" role="complementary" aria-label="Dashboard controls">
+        <div class="controls-header">
+          <h2>Filters & Controls</h2>
+          <button class="reset-btn" id="reset-filters" aria-label="Reset all filters">Reset All</button>
+        </div>
+
+        <fieldset class="control-group">
+          <legend>Species</legend>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" name="species" value="Adelie" checked>
+              <span class="checkmark" style="--species-color: var(--color-adelie)"></span>
+              <span>Adelie</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="species" value="Gentoo" checked>
+              <span class="checkmark" style="--species-color: var(--color-gentoo)"></span>
+              <span>Gentoo</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="species" value="Chinstrap" checked>
+              <span class="checkmark" style="--species-color: var(--color-chinstrap)"></span>
+              <span>Chinstrap</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="control-group">
+          <legend>Sex</legend>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="sex" value="all" checked>
+              <span class="radiomark"></span>
+              <span>All</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="sex" value="0">
+              <span class="radiomark"></span>
+              <span>Female</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="sex" value="1">
+              <span class="radiomark"></span>
+              <span>Male</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="control-group">
+          <legend>Scatter Plot Axes</legend>
+          <div class="select-group">
+            <div class="select-wrapper">
+              <label for="x-axis">X Axis</label>
+              <select id="x-axis" aria-label="Select X axis variable">
+                <option value="bill_length_mm">Bill Length (mm)</option>
+                <option value="bill_depth_mm">Bill Depth (mm)</option>
+                <option value="flipper_length_mm" selected>Flipper Length (mm)</option>
+                <option value="body_mass_g">Body Mass (g)</option>
+              </select>
+            </div>
+            <div class="select-wrapper">
+              <label for="y-axis">Y Axis</label>
+              <select id="y-axis" aria-label="Select Y axis variable">
+                <option value="bill_length_mm">Bill Length (mm)</option>
+                <option value="bill_depth_mm" selected>Bill Depth (mm)</option>
+                <option value="flipper_length_mm">Flipper Length (mm)</option>
+                <option value="body_mass_g">Body Mass (g)</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="control-group">
+          <legend>Theme</legend>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="theme" value="light" checked>
+              <span class="radiomark"></span>
+              <span>Light</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="theme" value="dark">
+              <span class="radiomark"></span>
+              <span>Dark</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="control-info">
+          <p id="filtered-count" aria-live="polite">Showing 344 of 344 penguins</p>
+        </div>
+      </aside>
+
+      <section class="charts-area" aria-label="Visualizations">
+        <div class="chart-row">
+          <article class="chart-container" aria-labelledby="scatter1-title">
+            <header>
+              <h3 id="scatter1-title">Bill Length vs Bill Depth</h3>
+              <p class="chart-hint">Drag to brush and filter other charts</p>
+            </header>
+            <div class="chart-wrapper" id="scatter1-chart"></div>
+          </article>
+
+          <article class="chart-container" aria-labelledby="violin-title">
+            <header>
+              <h3 id="violin-title">Body Mass Distribution by Species & Sex</h3>
+            </header>
+            <div class="chart-wrapper" id="violin-chart"></div>
+          </article>
+        </div>
+
+        <div class="chart-row">
+          <article class="chart-container" aria-labelledby="scatter2-title">
+            <header>
+              <h3 id="scatter2-title">Flipper Length vs Bill Length</h3>
+              <p class="chart-hint">Regression lines per species</p>
+            </header>
+            <div class="chart-wrapper" id="scatter2-chart"></div>
+          </article>
+
+          <article class="chart-container" aria-labelledby="heatmap-title">
+            <header>
+              <h3 id="heatmap-title">Correlation Heatmap</h3>
+            </header>
+            <div class="chart-wrapper" id="heatmap-chart"></div>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <section class="table-section" aria-labelledby="table-title">
+      <header class="table-header">
+        <h2 id="table-title">Data Table</h2>
+        <div class="table-controls">
+          <button id="toggle-table" class="toggle-btn" aria-expanded="true" aria-controls="data-table-container">
+            Collapse Table
+          </button>
+          <button id="export-csv" class="export-btn" aria-label="Export filtered data to CSV">Export CSV</button>
+        </div>
+      </header>
+      <div id="data-table-container" class="table-container">
+        <table id="data-table" role="grid" aria-label="Penguin data table">
+          <thead>
+            <tr>
+              <th scope="col" data-sort="species">Species</th>
+              <th scope="col" data-sort="bill_length_mm">Bill Length (mm)</th>
+              <th scope="col" data-sort="bill_depth_mm">Bill Depth (mm)</th>
+              <th scope="col" data-sort="flipper_length_mm">Flipper Length (mm)</th>
+              <th scope="col" data-sort="body_mass_g">Body Mass (g)</th>
+              <th scope="col" data-sort="sex">Sex</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div class="table-pagination" aria-label="Pagination">
+          <button id="prev-page" aria-label="Previous page" disabled>‹ Previous</button>
+          <span id="page-info" aria-live="polite">Page 1 of 1</span>
+          <button id="next-page" aria-label="Next page" disabled>Next ›</button>
+          <select id="page-size" aria-label="Rows per page">
+            <option value="10">10 per page</option>
+            <option value="25" selected>25 per page</option>
+            <option value="50">50 per page</option>
+            <option value="100">100 per page</option>
+          </select>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="dashboard-footer" role="contentinfo">
+    <p>Data source: Palmer Penguins dataset | Built with D3.js v7</p>
+  </footer>
+
+  <div id="tooltip" class="tooltip" role="tooltip" aria-hidden="true"></div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/charts/scatter.js"></script>
+  <script src="js/charts/violin.js"></script>
+  <script src="js/charts/heatmap.js"></script>
+  <script src="js/charts/table.js"></script>
+  <script src="js/controls.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

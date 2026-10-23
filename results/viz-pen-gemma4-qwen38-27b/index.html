@@ -1,0 +1,142 @@
+<!--
+Model: qwen3.8:27b
+Palmer Penguins — interactive D3 dashboard.
+
+Data:
+  - Raw rows:   ../data/penguins.json   (source: mwaskom/seaborn-data, penguins.csv)
+  - Phase 1:    ./derived.json          (pen-gem/phase1_stats.py output)
+
+Conventions (d3 skill):
+  - Deterministic rendering: no randomness, no transitions, fixed sizes,
+    rows sorted before binding, D3 pinned to 7.9.0.
+  - Accessibility: <title>/<desc> per SVG, keyboard-focusable scatter points,
+    Okabe-Ito color-blind-safe species palette, sex encoded by SHAPE
+    (circle = FEMALE, triangle = MALE) rather than color alone.
+  - Fixed axis domains are computed once over the FULL dataset so scales do
+    not rescale when filters change.
+
+Serve from the repo root (file:// will block the JSON fetch):
+  python3 -m http.server 8000
+  open http://localhost:8000/pen-gem/index.html
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Palmer Penguins — Measurement Dashboard</title>
+<link rel="stylesheet" href="dashboard.css" />
+<!-- D3 pinned to a specific version for deterministic dependency behavior -->
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>Palmer Penguins — Measurement Dashboard</h1>
+    <p class="subtitle">
+      344 records of 3 species (Adelie, Chinstrap, Gentoo) from Palmer Archipelago,
+      Antarctica. Views: scatter, bill-length distributions, per-species/sex summary
+      statistics, and the 4&nbsp;&times;&nbsp;4 Pearson correlation matrix.
+    </p>
+    <p class="provenance">
+      Data: <code>seaborn-data/penguins.csv</code> (mwaskom, 2021) &middot;
+      Stats: <code>pen-gem/phase1_stats.py</code> &middot;
+      Missing values are dropped per-feature (pairwise complete observations).
+    </p>
+  </header>
+
+  <nav class="controls" aria-label="Dashboard filters">
+    <div class="control-group" role="group" aria-label="Filter by species">
+      <span class="group-label">Species:</span>
+      <button class="filter-btn active" data-filter="species" data-value="All">All</button>
+      <button class="filter-btn" data-filter="species" data-value="Adelie">Adelie</button>
+      <button class="filter-btn" data-filter="species" data-value="Chinstrap">Chinstrap</button>
+      <button class="filter-btn" data-filter="species" data-value="Gentoo">Gentoo</button>
+    </div>
+    <div class="control-group" role="group" aria-label="Filter by sex">
+      <span class="group-label">Sex:</span>
+      <button class="filter-btn active" data-filter="sex" data-value="All">All</button>
+      <button class="filter-btn" data-filter="sex" data-value="FEMALE">Female</button>
+      <button class="filter-btn" data-filter="sex" data-value="MALE">Male</button>
+    </div>
+  </nav>
+
+  <section class="panel" aria-labelledby="scatter-title">
+    <h2 id="scatter-title">Body mass vs flipper length</h2>
+    <p class="panel-desc" id="scatter-desc">
+      Each point is one penguin. Color encodes species; shape encodes sex
+      (circle = female, triangle = male). Axes use fixed full-dataset domains.
+      Hover or focus a point for details.
+    </p>
+    <div id="scatter"></div>
+    <div class="legend" id="scatter-legend" aria-hidden="false"></div>
+  </section>
+
+  <div class="grid-2">
+    <section class="panel" aria-labelledby="hist-title">
+      <h2 id="hist-title">Bill length distribution</h2>
+      <p class="panel-desc" id="hist-desc">
+        Histogram of bill_length_mm by species (2&nbsp;mm bins, grouped).
+        Counts reflect the current filter.
+      </p>
+      <div id="histogram"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="box-title">
+      <h2 id="box-title">Bill length box plots</h2>
+      <p class="panel-desc" id="box-desc">
+        Median, interquartile range, Tukey whiskers (1.5&nbsp;&times;&nbsp;IQR)
+        and outliers for bill_length_mm by species, under the current filter.
+      </p>
+      <div id="boxplot"></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="summary-title">
+    <h2 id="summary-title">Summary statistics by species and sex</h2>
+    <p class="panel-desc" id="summary-desc">
+      Phase 1 outputs from <code>derived.json</code> (mean and sample standard
+      deviation, ddof&nbsp;=&nbsp;1; n = complete cases). KPI cards and bar values
+      follow the active species/sex filter; bars show the mean of each feature,
+      darker = male, lighter = female.
+    </p>
+    <div class="kpi-grid" id="kpi"></div>
+    <div class="legend" style="margin: 0 0 12px;">
+      <span class="legend-item"><span class="swatch" style="background:#4a4a4a"></span> Male mean</span>
+      <span class="legend-item"><span class="swatch" style="background:#a8a8a8"></span> Female mean</span>
+    </div>
+    <div id="bars" class="bars-grid"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="corr-title">
+    <h2 id="corr-title">Correlation matrix (Pearson r)</h2>
+    <p class="panel-desc" id="corr-desc">
+      4&nbsp;&times;&nbsp;4 Pearson correlation over bill length, bill depth,
+      flipper length and body mass, recomputed for the current filter
+      (pairwise complete observations). With no filters active this matrix
+      matches the Phase 1 output in <code>derived.json</code>.
+      Red = positive, blue = negative.
+    </p>
+    <div id="heatmap"></div>
+  </section>
+
+  <footer>
+    <h2>Reproduction</h2>
+    <ul>
+      <li>Source CSV: <code>data/penguins.csv</code> (fetched from
+          <code>https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv</code>).</li>
+      <li><code>python3 pen-gem/convert_data.py data/penguins.csv data/penguins.json</code></li>
+      <li><code>python3 pen-gem/phase1_stats.py data/penguins.json pen-gem/derived.json</code></li>
+      <li>Serve the repo root with <code>python3 -m http.server</code> and open
+          <code>/pen-gem/index.html</code>.</li>
+      <li>D3 7.9.0 loaded from jsDelivr CDN (no local node_modules in this lab).</li>
+    </ul>
+  </footer>
+
+</div>
+
+<div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
+<script src="dashboard.js"></script>
+</body>
+</html>

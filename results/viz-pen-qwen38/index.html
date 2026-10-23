@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<!--
+  Palmer Penguins — D3 dashboard (deterministic build)
+  Defaults / assumptions:
+    - sex encoding in data/penguins.json: 1 = male, 0 = female
+    - no randomness, no transitions/animations; fixed viewBox, margins, domains, tick counts
+    - no auto-generated IDs; the only ID is the stable "#tooltip" element
+    - D3 pinned to 7.9.0 (jsDelivr CDN)
+    - rows are stably sorted by (species, sex, bill_length_mm) before rendering
+    - __PENGUIN_DATA__ is replaced by dashboard/build.py with data/penguins.json
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Palmer Penguins — Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --ink: #1c2434;
+    --muted: #6b7688;
+    --line: #e3e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 28px 20px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1232px; margin: 0 auto; }
+  header { margin-bottom: 20px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.2px; }
+  .sub { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+  .legend { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px 10px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 2px; font-weight: 600; }
+  .card .note { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+  .card svg { display: block; width: 100%; height: auto; }
+  .span-3 { grid-column: span 3; }
+  .span-5 { grid-column: span 5; }
+  .span-7 { grid-column: span 7; }
+  .kpi .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+  .kpi .value { font-size: 26px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi .unit { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 3px; }
+  text.axis-label { font-size: 11.5px; fill: var(--muted); }
+  .domain, .tick line { stroke: #cfd6e2; }
+  .tick text { fill: #4a5568; font-size: 10.5px; }
+  .gridline line { stroke: #edf1f7; }
+  .hm-val { font-size: 12px; font-weight: 600; }
+  footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
+  .tooltip {
+    position: absolute;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 1000;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .tooltip.visible { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Palmer Penguins Dashboard</h1>
+    <p class="sub">333 penguins across three species · bill &amp; flipper measurements in mm · body mass in g</p>
+    <div class="legend" id="legend-species"></div>
+  </header>
+
+  <div class="grid">
+    <div class="card kpi span-3" id="kpi-total"></div>
+    <div class="card kpi span-3" id="kpi-species"></div>
+    <div class="card kpi span-3" id="kpi-mass"></div>
+    <div class="card kpi span-3" id="kpi-bill"></div>
+
+    <div class="card span-7">
+      <h2>Bill length vs. bill depth</h2>
+      <p class="note">Scatter · point size encodes body mass</p>
+      <div id="scatter"></div>
+    </div>
+    <div class="card span-5">
+      <h2>Population by species &amp; sex</h2>
+      <p class="note">Stacked bar · <span id="legend-sex-bar"></span></p>
+      <div id="bar"></div>
+    </div>
+
+    <div class="card span-7">
+      <h2>Body mass distribution</h2>
+      <p class="note">Histogram · 250 g bins · stacked by species</p>
+      <div id="hist"></div>
+    </div>
+    <div class="card span-5">
+      <h2>Flipper length by species</h2>
+      <p class="note">Box plot · whiskers at 1.5 × IQR · dots are outliers</p>
+      <div id="box"></div>
+    </div>
+
+    <div class="card span-5">
+      <h2>Measurement correlations</h2>
+      <p class="note">Pearson r · 4 morphometric variables</p>
+      <div id="heatmap"></div>
+    </div>
+    <div class="card span-7">
+      <h2>Species &amp; sex composition</h2>
+      <p class="note">Two-ring donut · outer ring = species, inner ring = sex <span id="legend-sex-donut"></span></p>
+      <div id="donut"></div>
+    </div>
+  </div>
+
+  <footer>
+    Source: <code>data/penguins.json</code> · built deterministically (d3@7.9.0, no animations, fixed domains)
+  </footer>
+</div>
+<div id="tooltip" class="tooltip"></div>
+
+<script type="module">
+"use strict";
+
+// ---------------------------------------------------------------------------
+// Data (inlined at build time by dashboard/build.py) <--- WTF!?!?!
+// ---------------------------------------------------------------------------
+
+const res = await fetch("../../../data/penguins.json");
+const penguinData = await res.json();
+
+const cmpStr = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const RAW = penguinData.slice().sort(
+  (a, b) => cmpStr(a.species, b.species) || (a.sex - b.sex) || (a.bill_length_mm - b.bill_length_mm)
+);
+
+const SPECIES = Array.from(new Set(RAW.map(d => d.species))).sort(cmpStr); // Adelie, Chinstrap, Gentoo
+const SEX_ORDER = [0, 1];
+const SEX_LABEL = { 0: "female", 1: "male" };
+
+// Fixed, brand-neutral palette (light/dark blue pair for sex keeps it categorical)
+const SP_COLOR = {};
+SPECIES.forEach(s => { SP_COLOR[s] = ["#4C72B0", "#DD8452", "#55A868"][SPECIES.indexOf(s)]; });
+const SEX_COLOR = { female: "#9DB4DC", male: "#33507F" };
+
+const fmtInt = d3.format(",.0f");
+const fmt1 = d3.format(".1f");
+const fmt2 = d3.format("+.2f");
+
+// Shared tooltip (opacity toggle via .visible class)
+const tip = d3.select("#tooltip");
+const showTip = (event, html) =>
+  tip.classed("visible", true).html(html)
+    .style("left", (event.pageX + 10) + "px")
+    .style("top", (event.pageY - 10) + "px");
+const hideTip = () => tip.classed("visible", false);
+
+// Small legend chips
+function renderSexLegend(sel) {
+  const el = d3.select(sel);
+  SEX_ORDER.forEach(s => {
+    el.append("span").attr("class", "chip").html(
+      '<span class="swatch" style="background:' + SEX_COLOR[SEX_LABEL[s]] + '"></span>' + SEX_LABEL[s]
+    );
+  });
+}
+d3.select("#legend-species").selectAll("span").data(SPECIES).join("span")
+  .attr("class", "chip")
+  .html(d => '<span class="swatch" style="background:' + SP_COLOR[d] + '"></span>' + d);
+renderSexLegend("#legend-sex-bar");
+renderSexLegend("#legend-sex-donut");
+
+// ---------------------------------------------------------------------------
+// KPI tiles
+// ---------------------------------------------------------------------------
+const kpis = [
+  { id: "kpi-total",   label: "Penguins",       value: fmtInt(RAW.length), unit: "individuals" },
+  { id: "kpi-species", label: "Species",        value: String(SPECIES.length), unit: SPECIES.join(", ") },
+  { id: "kpi-mass",    label: "Mean body mass", value: fmtInt(d3.mean(RAW, d => d.body_mass_g)), unit: "g" },
+  { id: "kpi-bill",    label: "Mean bill length", value: fmt1(d3.mean(RAW, d => d.bill_length_mm)), unit: "mm" }
+];
+kpis.forEach(k => {
+  const c = d3.select("#" + k.id);
+  c.append("div").attr("class", "label").text(k.label);
+  c.append("div").attr("class", "value").html(k.value + '<span class="unit">' + k.unit + "</span>");
+});
+
+// ---------------------------------------------------------------------------
+// 1) Scatter: bill length × bill depth, radius = body mass
+// ---------------------------------------------------------------------------
+(function () {
+  const W = 640, H = 360, m = { t: 12, r: 16, b: 44, l: 48 };
+  const x = d3.scaleLinear().domain([32, 60]).range([m.l, W - m.r]);
+  const y = d3.scaleLinear().domain([12, 22]).range([H - m.b, m.t]);
+  const r = d3.scaleSqrt().domain([2700, 6300]).range([3, 10]);
+
+  const svg = d3.select("#scatter").append("svg").attr("viewBox", "0 0 " + W + " " + H);
+  svg.append("g").attr("class", "gridline")
+    .attr("transform", "translate(" + m.l + ",0)")
+    .call(d3.axisLeft(y).tickValues([12, 14, 16, 18, 20, 22]).tickSize(-(W - m.l - m.r)).tickFormat(""));
+  svg.append("g")
+    .attr("transform", "translate(0," + (H - m.b) + ")")
+    .call(d3.axisBottom(x).tickValues([35, 40, 45, 50, 55]));
+  svg.append("g")
+    .attr("transform", "translate(" + m.l + ",0)")
+    .call(d3.axisLeft(y).tickValues([12, 14, 16, 18, 20, 22]));
+  svg.append("text").attr("class", "axis-label").attr("x", (m.l + W - m.r) / 2).attr("y", H - 8)
+    .attr("text-anchor", "middle").text("Bill length (mm)");
+  svg.append("text").attr("class", "axis-label").attr("transform", "rotate(-90)")
+    .attr("x", -(H - m.b + m.t) / 2).attr("y", 12).attr("text-anchor", "middle").text("Bill depth (mm)");
+
+  svg.append("g").selectAll("circle").data(RAW).join("circle")
+    .attr("cx", d => x(d.bill_length_mm))
+    .attr("cy", d => y(d.bill_depth_mm))
+    .attr("r", d => r(d.body_mass_g))
+    .attr("fill", d => SP_COLOR[d.species])
+    .attr("fill-opacity", 0.6)
+    .attr("stroke", d => SP_COLOR[d.species])
+    .attr("stroke-width", 0.6)
+    .on("mouseover", (event, d) => showTip(event,
+      "<strong>" + d.species + "</strong> (" + SEX_LABEL[d.sex] + ")<br>" +
+      "Bill: " + fmt1(d.bill_length_mm) + " × " + fmt1(d.bill_depth_mm) + " mm<br>" +
+      "Flipper: " + fmtInt(d.flipper_length_mm) + " mm · Mass: " + fmtInt(d.body_mass_g) + " g"))
+    .on("mouseout", hideTip);
+})();
+
+// ---------------------------------------------------------------------------
+// 2) Stacked bar: population per species, stacked by sex
+// ---------------------------------------------------------------------------
+(function () {
+  const W = 440, H = 360, m = { t: 12, r: 12, b: 44, l: 44 };
+  const groups = SPECIES.map(s => ({
+    species: s,
+    male:   RAW.filter(d => d.species === s && d.sex === 1).length,
+    female: RAW.filter(d => d.species === s && d.sex === 0).length
+  }));
+  const keys = ["female", "male"];
+  const series = d3.stack().keys(keys)(groups);
+  const x = d3.scaleBand().domain(SPECIES).range([m.l, W - m.r]).padding(0.35);
+  const y = d3.scaleLinear().domain([0, 160]).range([H - m.b, m.t]);
+
+  const svg = d3.select("#bar").append("svg").attr("viewBox", "0 0 " + W + " " + H);
+  svg.append("g")
+    .attr("transform", "translate(0," + (H - m.b) + ")")
+    .call(d3.axisBottom(x));
+  svg.append("g")
+    .attr("transform", "translate(" + m.l + ",0)")
+    .call(d3.axisLeft(y).tickValues([0, 40, 80, 120, 160]));
+  svg.append("text").attr("class", "axis-label").attr("transform", "rotate(-90)")
+    .attr("x", -(H - m.b + m.t) / 2).attr("y", 12).attr("text-anchor", "middle").text("Individuals");
+
+  series.forEach(layer => {
+    svg.append("g").selectAll("rect").data(layer).join("rect")
+      .attr("x", d => x(d.data.species))
+      .attr("width", x.bandwidth())
+      .attr("y", d => y(d[1]))
+      .attr("height", d => y(d[0]) - y(d[1]))
+      .attr("fill", SEX_COLOR[layer.key])
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1)
+      .on("mouseover", (event, d) => showTip(event,
+        "<strong>" + d.data.species + " — " + layer.key + "</strong><br>" +
+        d.data[layer.key] + " individuals (" + fmt1(100 * d.data[layer.key] / (d.data.male + d.data.female)) + "%)"))
+      .on("mouseout", hideTip);
+  });
+
+  // Species total labels above each stack
+  svg.append("g").selectAll("text.total").data(groups).join("text")
+    .attr("class", "axis-label")
+    .attr("x", d => x(d.species) + x.bandwidth() / 2)
+    .attr("y", d => y(d.female + d.male) - 6)
+    .attr("text-anchor", "middle")
+    .style("font-weight", "600")
+    .text(d => d.male + d.female);
+})();
+
+// ---------------------------------------------------------------------------
+// 3) Histogram: body mass, fixed 250 g bins, stacked by species
+// ---------------------------------------------------------------------------
+(function () {
+  const W = 640, H = 360, m = { t: 12, r: 16, b: 44, l: 44 };
+  const thresholds = d3.range(2500, 6500, 250);
+  const bins = d3.bin()
+    .value(d => d.body_mass_g)
+    .domain([2500, 6500])
+    .thresholds(thresholds)(RAW);
+  bins.forEach(b => SPECIES.forEach(s => { b[s] = b.filter(d => d.species === s).length; }));
+  const keys = SPECIES.slice();
+  const series = d3.stack().keys(keys)(bins.map(b => {
+    const o = { b };
+    keys.forEach(k => { o[k] = b[k] || 0; });
+    return o;
+  }));
+  const x = d3.scaleLinear().domain([2500, 6500]).range([m.l, W - m.r]);
+  const ymax = d3.max(bins, b => b.length) || 0;
+  const y = d3.scaleLinear().domain([0, Math.ceil(ymax / 10) * 10]).range([H - m.b, m.t]);
+
+  const svg = d3.select("#hist").append("svg").attr("viewBox", "0 0 " + W + " " + H);
+  svg.append("g")
+    .attr("transform", "translate(0," + (H - m.b) + ")")
+    .call(d3.axisBottom(x).tickValues([2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500])
+      .tickFormat(d3.format("~s")));
+  svg.append("g")
+    .attr("transform", "translate(" + m.l + ",0)")
+    .call(d3.axisLeft(y).tickValues(d3.range(0, y.domain()[1] + 1, y.domain()[1] > 30 ? 10 : 5)));
+  svg.append("text").attr("class", "axis-label").attr("x", (m.l + W - m.r) / 2).attr("y", H - 8)
+    .attr("text-anchor", "middle").text("Body mass (g)");
+  svg.append("text").attr("class", "axis-label").attr("transform", "rotate(-90)")
+    .attr("x", -(H - m.b + m.t) / 2).attr("y", 12).attr("text-anchor", "middle").text("Individuals");
+
+  series.forEach(layer => {
+    svg.append("g").selectAll("rect").data(layer).join("rect")
+      .attr("x", d => x(d.data.b.x0) + 0.5)
+      .attr("width", d => Math.max(0, x(d.data.b.x1) - x(d.data.b.x0) - 1))
+      .attr("y", d => y(d[1]))
+      .attr("height", d => Math.max(0, y(d[0]) - y(d[1])))
+      .attr("fill", SP_COLOR[layer.key])
+      .attr("fill-opacity", 0.9)
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 0.75)
+      .on("mouseover", (event, d) => showTip(event,
+        "<strong>" + layer.key + "</strong><br>" +
+        fmtInt(d.data.b.x0) + "–" + fmtInt(d.data.b.x1) + " g: " + d.data[layer.key] + " of " + d.data.b.length))
+      .on("mouseout", hideTip);
+  });
+})();
+
+// ---------------------------------------------------------------------------
+// 4) Box plot: flipper length by species (Tukey, deterministic)
+// ---------------------------------------------------------------------------
+(function () {
+  const W = 440, H = 360, m = { t: 12, r: 12, b: 44, l: 44 };
+  const x = d3.scaleBand().domain(SPECIES).range([m.l, W - m.r]).padding(0.5);
+  const y = d3.scaleLinear().domain([170, 235]).range([H - m.b, m.t]);
+  const stats = SPECIES.map(s => {
+    const v = RAW.filter(d => d.species === s).map(d => d.flipper_length_mm).sort(d3.ascending);
+    const q1 = d3.quantile(v, 0.25), med = d3.quantile(v, 0.5), q3 = d3.quantile(v, 0.75);
+    const iqr = q3 - q1, loFence = q1 - 1.5 * iqr, hiFence = q3 + 1.5 * iqr;
+    const inliers = v.filter(vv => vv >= loFence && vv <= hiFence);
+    return { species: s, n: v.length, q1, med, q3,
+      wLo: d3.min(inliers), wHi: d3.max(inliers),
+      outliers: v.filter(vv => vv < loFence || vv > hiFence) };
+  });
+
+  const svg = d3.select("#box").append("svg").attr("viewBox", "0 0 " + W + " " + H);
+  svg.append("g")
+    .attr("transform", "translate(0," + (H - m.b) + ")")
+    .call(d3.axisBottom(x));
+  svg.append("g")
+    .attr("transform", "translate(" + m.l + ",0)")
+    .call(d3.axisLeft(y).tickValues([170, 180, 190, 200, 210, 220, 230]));
+  svg.append("text").attr("class", "axis-label").attr("transform", "rotate(-90)")
+    .attr("x", -(H - m.b + m.t) / 2).attr("y", 12).attr("text-anchor", "middle").text("Flipper length (mm)");
+
+  const g = svg.append("g").selectAll("g.stat").data(stats).join("g")
+    .attr("transform", d => "translate(" + x(d.species) + ",0)");
+  const half = x.bandwidth() / 2;
+  g.append("line").attr("x1", 0).attr("x2", 0).attr("y1", d => y(d.wLo)).attr("y2", d => y(d.wHi)).attr("stroke", "#4a5568");
+  g.append("line").attr("x1", -half * 0.6).attr("x2", half * 0.6).attr("y1", d => y(d.wLo)).attr("y2", d => y(d.wLo)).attr("stroke", "#4a5568");
+  g.append("line").attr("x1", -half * 0.6).attr("x2", half * 0.6).attr("y1", d => y(d.wHi)).attr("y2", d => y(d.wHi)).attr("stroke", "#4a5568");
+  g.append("rect")
+    .attr("x", -half).attr("width", x.bandwidth())
+    .attr("y", d => y(d.q3)).attr("height", d => y(d.q1) - y(d.q3))
+    .attr("fill", d => SP_COLOR[d.species]).attr("fill-opacity", 0.55)
+    .attr("stroke", d => SP_COLOR[d.species])
+    .on("mouseover", (event, d) => showTip(event,
+      "<strong>" + d.species + "</strong> · n = " + d.n + "<br>" +
+      "Median: " + fmt1(d.med) + " mm<br>Q1–Q3: " + fmt1(d.q1) + " – " + fmt1(d.q3) + " mm<br>" +
+      "Whiskers: " + fmt1(d.wLo) + " – " + fmt1(d.wHi) + " mm"))
+    .on("mouseout", hideTip);
+  g.append("line").attr("x1", -half).attr("x2", half).attr("y1", d => y(d.med)).attr("y2", d => y(d.med))
+    .attr("stroke", "#1c2434").attr("stroke-width", 2);
+  g.append("g").selectAll("circle").data(d => d.outliers).join("circle")
+    .attr("cx", 0).attr("cy", d => y(d)).attr("r", 3)
+    .attr("fill", "none").attr("stroke", d => SP_COLOR[speciesOf(d)] || "#4a5568");
+  function speciesOf(v) { return stats.find(s => s.outliers.includes(v) || (v >= s.wLo && v <= s.wHi))?.species; }
+  g.each(function (d) { d3.select(this).selectAll("circle").attr("stroke", SP_COLOR[d.species]); });
+})();
+
+// ---------------------------------------------------------------------------
+// 5) Correlation heatmap: 4 morphometric variables (Pearson r)
+// ---------------------------------------------------------------------------
+(function () {
+  const VARS = [
+    { key: "bill_length_mm",    label: "Bill L" },
+    { key: "bill_depth_mm",     label: "Bill D" },
+    { key: "flipper_length_mm", label: "Flipper" },
+    { key: "body_mass_g",       label: "Mass" }
+  ];
+  const mean = (key) => d3.mean(RAW, d => d[key]);
+  const cov = (a, b) => d3.mean(RAW, d => (d[a] - mean(a)) * (d[b] - mean(b)));
+  const sd = (key) => Math.sqrt(cov(key, key));
+  const pearson = (a, b) => cov(a, b) / (sd(a) * sd(b));
+  const M = VARS.map((v, i) => VARS.map((w, j) => {
+    const r = i === j ? 1 : pearson(v.key, w.key);
+    return { row: VARS[i].label, col: VARS[j].label, r };
+  }));
+
+  const cell = 72, label = 58;
+  const W = label + 4 * cell + 8, H = label + 4 * cell + 8;
+  const color = d3.scaleDiverging(d3.interpolateRdYlBu).domain([1, 0, -1]); // +1 → red, -1 → blue
+
+  const svg = d3.select("#heatmap").append("svg").attr("viewBox", "0 0 " + W + " " + H);
+  M.forEach((rowArr, i) => rowArr.forEach((c, j) => {
+    const g = svg.append("g").attr("transform", "translate(" + (label + j * cell) + "," + (label + i * cell) + ")");
+    g.append("rect").attr("width", cell - 2).attr("height", cell - 2).attr("rx", 3)
+      .attr("fill", color(c.r))
+      .on("mouseover", (event) => showTip(event,
+        "<strong>" + c.row + " × " + c.col + "</strong><br>Pearson r = " + fmt2(c.r)))
+      .on("mouseout", hideTip);
+    g.append("text").attr("class", "hm-val")
+      .attr("x", (cell - 2) / 2).attr("y", (cell - 2) / 2 + 4)
+      .attr("text-anchor", "middle")
+      .attr("fill", Math.abs(c.r) > 0.55 ? "#ffffff" : "#26304a")
+      .text(fmt2(c.r));
+  }));
+  VARS.forEach((v, i) => {
+    svg.append("text").attr("class", "axis-label").attr("x", label + i * cell + (cell - 2) / 2)
+      .attr("y", label - 8).attr("text-anchor", "middle").text(v.label);
+    svg.append("text").attr("class", "axis-label").attr("x", label - 8)
+      .attr("y", label + i * cell + (cell - 2) / 2 + 4).attr("text-anchor", "end").text(v.label);
+  });
+  svg.append("text").attr("class", "axis-label").attr("x", label + 2 * cell)
+    .attr("y", 14).attr("text-anchor", "middle").text("r = +1 (red) … 0 … −1 (blue)");
+})();
+
+// ---------------------------------------------------------------------------
+// 6) Two-ring donut: outer = species, inner = sex within species
+// ---------------------------------------------------------------------------
+(function () {
+  const W = 480, H = 340, cx = W / 2, cy = H / 2;
+  const slices = [];
+  SPECIES.forEach(s => SEX_ORDER.forEach(sex => {
+    slices.push({ species: s, sex: SEX_LABEL[sex],
+      count: RAW.filter(d => d.species === s && d.sex === sex).length });
+  }));
+  const speciesTotals = SPECIES.map(s => ({ species: s, count: RAW.filter(d => d.species === s).length }));
+  const outerPie = d3.pie().sort(null).value(d => d.count)(speciesTotals);
+  const innerPie = d3.pie().sort(null).value(d => d.count)(slices); // same order → rings align
+  const arcOuter = d3.arc().innerRadius(74).outerRadius(122);
+  const arcInner = d3.arc().innerRadius(42).outerRadius(70);
+
+  const svg = d3.select("#donut").append("svg").attr("viewBox", "0 0 " + W + " " + H);
+  const g = svg.append("g").attr("transform", "translate(" + cx + "," + cy + ")");
+
+  g.append("g").selectAll("path.inner").data(innerPie).join("path")
+    .attr("d", arcInner)
+    .attr("fill", d => SEX_COLOR[d.data.sex])
+    .attr("stroke", "#fff").attr("stroke-width", 1)
+    .on("mouseover", (event, d) => showTip(event,
+      "<strong>" + d.data.species + " — " + d.data.sex + "</strong><br>" + d.data.count + " individuals"))
+    .on("mouseout", hideTip);
+  g.append("g").selectAll("path.outer").data(outerPie).join("path")
+    .attr("d", arcOuter)
+    .attr("fill", d => SP_COLOR[d.data.species])
+    .attr("stroke", "#fff").attr("stroke-width", 1.5)
+    .on("mouseover", (event, d) => showTip(event,
+      "<strong>" + d.data.species + "</strong><br>" + d.data.count + " of " + RAW.length +
+      " (" + fmt1(100 * d.data.count / RAW.length) + "%)"))
+    .on("mouseout", hideTip);
+
+  const arcLabel = d3.arc().innerRadius(94).outerRadius(94);
+  g.append("g").selectAll("text.pct").data(outerPie).join("text")
+    .attr("transform", d => "translate(" + arcLabel.centroid(d) + ")")
+    .attr("text-anchor", "middle").attr("fill", "#ffffff")
+    .style("font-size", "11.5px").style("font-weight", "600")
+    .text(d => d.data.species.slice(0, 3) + " " + fmt1(100 * d.data.count / RAW.length) + "%");
+
+  g.append("text").attr("text-anchor", "middle").attr("y", -4).style("font-size", "20px").style("font-weight", "700").text(fmtInt(RAW.length));
+  g.append("text").attr("text-anchor", "middle").attr("y", 14).attr("class", "axis-label").text("penguins");
+})();
+</script>
+</body>
+</html>

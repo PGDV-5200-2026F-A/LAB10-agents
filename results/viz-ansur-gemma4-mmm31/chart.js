@@ -753,8 +753,8 @@
     var g = svg.append("g").attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
 
     var cells = [];
-    for (i = 0; i < size; i += 1) {
-      for (j = 0; j < size; j += 1) {
+    for (let i = 0; i < size; i += 1) {
+      for (let j = 0; j < size; j += 1) {
         cells.push({ i: i, j: j, value: values[i][j], n: counts[i][j] });
       }
     }

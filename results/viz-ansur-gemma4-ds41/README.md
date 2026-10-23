@@ -176,10 +176,9 @@ the source; a JS runtime was not available in the authoring environment, so the
 in-browser numbers were checked against `summary.json` by re-deriving the same
 formulas rather than by execution.
 
+===============================
 
-========================================================================
-ANSUR DATASET - DATA DASHBOARD
-========================================================================
+# ANSUR DATASET - DATA DASHBOARD
 
 - Model: gemma4:e4b
 - Assistant: Claude Code v2.1.293 with high effort and plan mode

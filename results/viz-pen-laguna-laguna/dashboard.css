@@ -1,0 +1,225 @@
+/* Model: poolside/laguna-s-2.1:free */
+/*
+  Palmer Penguins Dashboard — Stylesheet
+  D3 v7.9.0 | Data source: data/penguins.json
+*/
+
+/* ---- Reset and base ---- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #2c3e50;
+    background-color: #f5f7fa;
+}
+
+/* ---- Header ---- */
+header {
+    background-color: #2c3e50;
+    color: #ffffff;
+    padding: 24px 32px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: -0.5px;
+}
+
+header .subtitle {
+    font-size: 14px;
+    opacity: 0.8;
+    margin-top: 4px;
+    font-weight: 300;
+}
+
+/* ---- Main layout ---- */
+main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
+
+.chart-section {
+    background-color: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    margin-bottom: 24px;
+    padding: 16px;
+}
+
+.chart-section h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #34495e;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+.chart-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+/* ---- Tooltip ---- */
+.tooltip {
+    position: absolute;
+    padding: 8px 12px;
+    background: rgba(44, 62, 80, 0.92);
+    color: #ffffff;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 1000;
+    max-width: 220px;
+    word-wrap: break-word;
+}
+
+.tooltip.visible {
+    opacity: 1;
+}
+
+/* ---- Selection highlight ---- */
+.selected {
+    stroke: #2c3e50;
+    stroke-width: 2.5px !important;
+}
+
+/* When an element is selected, dim others */
+.dimmed {
+    opacity: 0.3;
+}
+
+/* ---- Chart elements ---- */
+svg {
+    font-size: 11px;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #95a5a6;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    fill: #7f8c8d;
+}
+
+.chart-title {
+    font-size: 12px;
+    font-weight: 600;
+    fill: #34495e;
+    text-anchor: middle;
+}
+
+.chart-label {
+    font-size: 11px;
+    fill: #7f8c8d;
+    text-anchor: middle;
+}
+
+/* ---- Legend ---- */
+.legend {
+    font-size: 11px;
+}
+
+.legend-item {
+    cursor: pointer;
+}
+
+.legend-swatch {
+    stroke: none;
+    stroke-width: 0;
+}
+
+/* ---- Bar styles ---- */
+.bar {
+    stroke: #ffffff;
+    stroke-width: 1;
+    cursor: pointer;
+}
+
+.bar:hover {
+    opacity: 0.75;
+}
+
+.bar.selected {
+    stroke: #2c3e50;
+    stroke-width: 2.5px;
+}
+
+/* ---- Scatter dot styles ---- */
+.dot {
+    stroke: #ffffff;
+    stroke-width: 0.8;
+    cursor: pointer;
+}
+
+.dot:hover {
+    stroke-width: 1.5;
+}
+
+/* ---- Violin styles ---- */
+.violin-path {
+    stroke: none;
+    cursor: pointer;
+}
+
+/* ---- Heatmap cell styles ---- */
+.heatmap-cell {
+    stroke: #ffffff;
+    stroke-width: 1;
+}
+
+.heatmap-text {
+    fill: #2c3e50;
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: central;
+}
+
+/* ---- Box plot styles ---- */
+.boxplot-whisker {
+    stroke: #2c3e50;
+    stroke-width: 1.2;
+}
+
+.boxplot-box {
+    stroke: #2c3e50;
+    stroke-width: 1.2;
+    fill-opacity: 0.7;
+}
+
+.boxplot-median {
+    stroke: #2c3e50;
+    stroke-width: 1.5;
+}
+
+.boxplot-outlier {
+    fill: #95a5a6;
+    stroke: #7f8c8d;
+    stroke-width: 0.5;
+}
+
+/* ---- Footer ---- */
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #95a5a6;
+    font-size: 12px;
+}
