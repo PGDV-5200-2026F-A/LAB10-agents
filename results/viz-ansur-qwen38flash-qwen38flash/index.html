@@ -1,0 +1,169 @@
+<!-- Model: d12-qwen-flash -->
+<!--
+  ANSUR Anthropometry Dashboard — D3 v7 dashboard for data/ansur-full.csv.
+
+  d3 pin: https://unpkg.com/d3@7.9.0/dist/d3.min.js (skill requirement: pinned
+  version, browser-only, no Node). If offline, results/viz-ansur-gemma4-mmm31/
+  vendor/d3.v7.9.0.min.js is the same pinned build and may be copied locally.
+
+  Data path (relative to THIS file): ../../data/ansur-full.json.
+  The page must be served over http (fetch of local JSON via file:// is
+  CORS-blocked); run `python3 -m http.server 8000` from the repo root and open
+  http://localhost:8000/results/viz-ansur-qwen-qwen/index.html
+
+  Row counts: JSON has 6068 raw rows; exactly 1 row carries the invalid
+  weight = 0 sentinel (gender M, height 71, age 41) and is excluded from every
+  panel, so all panels show n = 6067 at the "All" gender setting.
+  Per-column nulls are preserved as null; the scatter/matrix use pairwise
+  complete cases per measure pair, so each panel states its own n.
+
+  Defaults (missing-input defaults, per d3 skill):
+    xVar = stature, yVar = span, gender = All, density overlay = ON,
+    matrix metric = r (Pearson correlation),
+    density contours: d3.contourDensity bandwidth = 20, thresholds = 12,
+    KDE: Gaussian kernel, Silverman bandwidth, fixed 48-point grid,
+    age histogram: fixed bins at 15,20,...,60 (never data-derived),
+    z-score panel (P6) domain: fixed [-3.5, 3.5].
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANSUR Anthropometry Dashboard</title>
+<link rel="stylesheet" href="dashboard.css">
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-top">
+    <h1>ANSUR Anthropometry Dashboard</h1>
+    <div class="controls">
+      <fieldset class="seg" role="radiogroup" aria-label="Gender filter (applies to every panel)">
+        <legend>Gender</legend>
+        <label><input type="radio" name="gender" value="ALL" checked>All</label>
+        <label><input type="radio" name="gender" value="M">Male</label>
+        <label><input type="radio" name="gender" value="F">Female</label>
+      </fieldset>
+      <button id="reset" type="button">Reset all filters</button>
+    </div>
+  </div>
+
+  <section class="tiles" aria-label="Summary statistics of the current filter">
+    <div class="tile"><span class="tile-value" id="tile-n">–</span><span class="tile-label">n rows (of 6068 raw; 1 weight=0 sentinel excluded)</span></div>
+    <div class="tile"><span class="tile-value" id="tile-pct-female">–</span><span class="tile-label">% female</span></div>
+    <div class="tile"><span class="tile-value" id="tile-mean-height">–</span><span class="tile-label">mean height (in)</span></div>
+    <div class="tile"><span class="tile-value" id="tile-r">–</span><span class="tile-label" id="tile-r-label">r(X, Y)</span></div>
+  </section>
+
+  <p class="legend">
+    Gender encoding is redundant everywhere:
+    <span class="leg leg-m">Male — teal, circle, solid fill, “M” label</span>,
+    <span class="leg leg-f">Female — coral, triangle, diagonal hatch, “F” label</span>.
+  </p>
+</header>
+
+<main class="dashboard">
+
+  <!-- P1: big selectable scatter -->
+  <section class="panel" id="p1" aria-labelledby="p1-title">
+    <h2 id="p1-title">P1 · Measurement scatter</h2>
+    <div class="panel-controls">
+      <label>X <select id="x-var" aria-label="Scatter X measure"></select></label>
+      <label>Y <select id="y-var" aria-label="Scatter Y measure"></select></label>
+      <label class="chk"><input type="checkbox" id="density-toggle" checked>Density contours</label>
+    </div>
+    <p class="caption" id="p1-caption"></p>
+    <div class="chart" id="p1-chart"></div>
+    <p class="note">Drag on the plot to brush-select people; the selection dims
+      unselected points and is echoed (labelled) in P3/P4/P5. Contours are a
+      smoothed kernel estimate (bandwidth 20, 12 levels), not observed points.
+      Axis domains are the frozen full-sample extents, so toggling gender never
+      rescales an axis.</p>
+  </section>
+
+  <!-- P2: 16x16 correlation / covariance matrix -->
+  <section class="panel" id="p2" aria-labelledby="p2-title">
+    <h2 id="p2-title">P2 · Measure-pair matrix (16 × 16)</h2>
+    <div class="panel-controls">
+      <fieldset class="seg" role="radiogroup" aria-label="Matrix metric">
+        <legend>Metric</legend>
+        <label><input type="radio" name="metric" value="r" checked>r (correlation)</label>
+        <label><input type="radio" name="metric" value="cov">cov (covariance)</label>
+      </fieldset>
+    </div>
+    <p class="caption" id="p2-caption"></p>
+    <div class="chart" id="p2-chart"></div>
+    <p class="note">Click (or focus + Enter on) any cell to load that pair into
+      P1. Values use pairwise complete cases per pair. Most measures share a
+      dominant overall-body-size factor, so the r-matrix reads mostly warm;
+      height (in) vs stature (mm) is unit redundancy, not a finding.</p>
+  </section>
+
+  <!-- P3: violin + box of current Y by gender -->
+  <section class="panel" id="p3" aria-labelledby="p3-title">
+    <h2 id="p3-title">P3 · Distribution of Y measure, by gender</h2>
+    <p class="caption" id="p3-caption"></p>
+    <div class="chart" id="p3-chart"></div>
+    <p class="note">Violin width = kernel density (arbitrary units, Gaussian
+      kernel, Silverman bandwidth, fixed 48-point grid over the frozen
+      full-sample extent — so filtered violins stay comparable). Box = q1–q3,
+      thick line = median, whiskers = 1.5×IQR fence, circles = outliers,
+      diamond = mean. Numbers above each violin are exact (not hover-only).</p>
+  </section>
+
+  <!-- P4: stacked age histogram -->
+  <section class="panel" id="p4" aria-labelledby="p4-title">
+    <h2 id="p4-title">P4 · Age distribution (stacked M/F)</h2>
+    <p class="caption" id="p4-caption"></p>
+    <div class="chart" id="p4-chart"></div>
+    <p class="note">Bin edges are fixed at 15, 20, …, 60 years (never
+      data-derived), so the histogram is stable across filters. Counts above
+      bars are bin totals.</p>
+  </section>
+
+  <!-- P5: parallel coordinates -->
+  <section class="panel panel-wide" id="p5" aria-labelledby="p5-title">
+    <h2 id="p5-title">P5 · Parallel coordinates — axis brushes are global filters</h2>
+    <p class="caption" id="p5-caption"></p>
+    <div class="chart" id="p5-chart"></div>
+    <p class="note">Axes are independent per-measure scales in original units
+      (never normalized); vertical position is meaningless across axes. Drag
+      vertically on any axis to filter — every panel and the header tiles
+      recompute, and each axis shows the live surviving n under its label.
+      Lines skip axes with missing values rather than drawing through them.
+      Teal/coral lines highlighted at high opacity = the P1 scatter-brush
+      selection, if any.</p>
+  </section>
+
+  <!-- P6: region banded z-scored violins -->
+  <section class="panel panel-wide" id="p6" aria-labelledby="p6-title">
+    <h2 id="p6-title">P6 · Body-region z-scored violins</h2>
+    <p class="caption" id="p6-caption"></p>
+    <div class="chart" id="p6-chart"></div>
+    <p class="note">This is the only panel where units are deliberately removed:
+      z = (x − mean)/sd computed per measure <em>on the current filtered
+      sample</em>, so size-independent shape differences (ear vs. hand
+      proportions, sexual dimorphism by region) become comparable. Dashed line
+      marks z = 0. The KDE grid is fixed to z ∈ [−3.5, 3.5]; the density axis
+      is shared across all 16 columns.</p>
+  </section>
+
+</main>
+
+<!-- Shared hatch pattern for Female fills (referenced document-wide by url(#...)). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="fill-female-hatch" patternUnits="userSpaceOnUse" width="6" height="6">
+      <rect width="6" height="6" fill="#ff6b6b" fill-opacity="0.45"></rect>
+      <path d="M-1,7 L7,-1 M-1,1 L1,-1 M5,7 L7,5" stroke="#ff6b6b" stroke-width="1.4"></path>
+    </pattern>
+  </defs>
+</svg>
+
+<div id="tooltip" class="tooltip" role="status"></div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
